@@ -14,7 +14,7 @@ class ChatGPTController extends Controller
             'Authorization' => 'Bearer '.env('OPENAI_API_KEY'),
         ])
         ->post("https://api.openai.com/v1/chat/completions", [
-            "model" => "gpt-3.5-turbo",
+            "model" => "TGArtAdvisor",
             'messages' => [
                 [
                     "role" => "user",
@@ -30,7 +30,7 @@ class ChatGPTController extends Controller
         ])
         ->json();
 
-        \Log::info(['$data[choices]' => $data['choices']]);
+        \Log::info(['$data[choices]' => $data]);
 
 
         return response()->json($data['choices'][0]['message'], 200, array(), JSON_PRETTY_PRINT);
