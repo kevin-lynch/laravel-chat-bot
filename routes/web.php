@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ChatGPTController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -23,6 +24,12 @@ Route::get('/', function () {
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
+});
+
+Route::post('/chat', [ChatGPTController::class, 'sendMessage']);
+
+Route::get('/chat', function () {
+    return Inertia::render('ChatGPT');
 });
 
 Route::get('/dashboard', function () {
