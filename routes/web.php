@@ -26,8 +26,6 @@ Route::get('/', function () {
     ]);
 });
 
-//Route::post('/chat', [ChatGPTController::class, 'sendMessage']);
-
 Route::get('/chat', function () {
     return Inertia::render('ChatGPT');
 })->middleware(['auth', 'verified'])->name('chat');
