@@ -3,7 +3,7 @@
     <AuthenticatedLayout>
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                ChatGPT Custom
+                <a href="/chat">ChatGPT Custom</a>
             </h2>
         </template>
 
@@ -52,8 +52,12 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 import axios from 'axios';
+import Prism from 'prismjs';
+
+import 'prismjs/themes/prism-tomorrow.css';
+
 
 const threadId = ref('');
 const message = ref('');
@@ -71,6 +75,12 @@ onMounted(() => {
     }
 });
 
+watch(() => questions.value.length, () => {
+    nextTick().then(() => {
+        Prism.highlightAll();
+    });
+});
+
 const handleKeyPress = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
@@ -80,8 +90,11 @@ const handleKeyPress = (event) => {
 
 const processResponse = (text) => {
     const codeSections = [];
+
     text = text.replace(/```(\w+)?\n([\s\S]+?)```/g, (match, lang, code) => {
-        codeSections.push(`<pre><code class="language-${lang || ''}">${code.trim()}</code></pre>`);
+        let html = `<h6 class="flex items-center relative text-gray-200 bg-gray-800 gizmo:dark:bg-token-surface-primary px-4 py-2 text-xs font-sans justify-between rounded-t-md">${ lang }</h6>`
+        let escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        codeSections.push(`${html}<pre><code class="language-${lang || 'plaintext'}">${escapedCode.trim()}</code></pre>`);
         return `CODESECTION-${codeSections.length - 1}`;
     });
 
@@ -90,6 +103,7 @@ const processResponse = (text) => {
 
     return text;
 };
+
 
 const sendMessage = () => {
     if (isLoading.value) return;
@@ -149,8 +163,11 @@ const fetchConversation = (threadId) => {
 
 </script>
 
-<style scoped>
+<style>
 .busy-svg {
     border: 3px solid black;
+}
+pre[class*="language-"] {
+    margin-top: 0 !important;
 }
 </style>
