@@ -44,7 +44,6 @@ class ChatGPTController extends Controller
         if (isset($data['choices'])) {
             $apiResponse = $data['choices'][0]['message'];
 
-            // Save the system's response to the database
             $this->saveMessageToDb('assistant', $apiResponse['content'], $threadId);
 
             return response()->json($apiResponse, 200, array(), JSON_PRETTY_PRINT);
@@ -80,8 +79,6 @@ class ChatGPTController extends Controller
 
     public function fetchConversation($threadId)
     {
-        \Log::info(['$threadId' => $threadId]);
-
         $conversation = ChatMessage::where(['thread_id' => $threadId])->get();
 
         return response()->json([

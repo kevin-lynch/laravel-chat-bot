@@ -3,7 +3,7 @@
     <AuthenticatedLayout>
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                ChatGPT Custom Model #{{ threadId }}#
+                ChatGPT Custom
             </h2>
         </template>
 
@@ -27,25 +27,6 @@
                                 <div class="ml-16 p-2 rounded-lg" v-html="processResponse(reply.content)"></div>
                             </template>
                         </div>
-
-<!--                        <div class="space-y-2">
-                            <template v-for="(reply, index) in questions" :key="index">
-                                <div class="flex items-center">
-                                    <div class="w-12 h-12 rounded-full border border-gray-400 px-3 py-2 flex items-center">
-                                        <font-awesome-icon icon="user" class="w-full h-auto mx-auto my-auto" />
-                                    </div>
-                                    <div class="ml-4">You</div>
-                                </div>
-                                <div class="ml-16 p-2 rounded-lg" v-html="processResponse(reply.question)"></div>
-                                <div class="flex items-center">
-                                    <div class="w-12 h-12 rounded-full border border-gray-400 px-2 py-1 flex items-center">
-                                        <font-awesome-icon icon="robot" class="w-full h-auto mx-auto my-auto" />
-                                    </div>
-                                    <div class="ml-4">GPT</div>
-                                </div>
-                                <div v-if="reply.answer" class="ml-16  p-2 rounded-lg" v-html="processResponse(reply.answer)"></div>
-                            </template>
-                        </div>-->
                         <div class="relative pl-16">
                               <textarea
                                   ref="textarea"
@@ -75,7 +56,7 @@ import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
 const threadId = ref('');
-const message = ref('write console log in es6');
+const message = ref('');
 const model = ref('gpt-4-1106-preview');
 const questions = ref([]);
 const responseObj = ref({});
@@ -105,8 +86,6 @@ const processResponse = (text) => {
     });
 
     text = text.replace(/\n/g, '<br>');
-
-    // Replace back the code sections
     text = text.replace(/CODESECTION-(\d+)/g, (match, index) => codeSections[index]);
 
     return text;
@@ -121,31 +100,24 @@ const sendMessage = () => {
         window.history.pushState({ threadId: threadId.value }, '', newUrl);
     }
 
-    let currentMessage = { question: message.value.trim() };
-    questions.value.push(currentMessage);
+    questions.value.push({ role: 'user', content: message.value.trim() });
     message.value = '';
     isLoading.value = true;
 
-    // Extract the last two Q/A pairs
-    const lastTwoQA = questions.value.slice(-2).flatMap(q => [
-        { role: 'user', content: q.question },
-        q.answer ? { role: 'system', content: q.answer } : null
-    ]).filter(Boolean);
+    const conversationHistory = questions.value.map(q => ({ role: q.role, content: q.content }));
 
-    console.log('threadId.value', threadId.value)
-
-    axios.post('/chat', {
-        message: currentMessage.question,
+    axios.post('/api/chat', {
+        message: conversationHistory.slice(-1)[0].content,
         model: model.value,
-        conversation: lastTwoQA,
+        conversation: conversationHistory,
         thread_id: threadId.value
     })
     .then((response) => {
         responseObj.value = response;
-        questions.value[questions.value.length - 1].answer = response.data.content;
+        questions.value.push({ role: 'system', content: response.data.content });
     })
     .catch((error) => {
-        questions.value[questions.value.length - 1].answer = 'Error: No Response';
+        questions.value.push({ role: 'system', content: 'Error: No Response' });
         console.error('Error:', error);
     })
     .finally(() => {
@@ -161,7 +133,6 @@ const fetchConversation = (threadId) => {
     isLoading.value = true;
     axios.get(`/api/chat/conversation/${threadId}`)
     .then((response) => {
-        console.log('response', response)
         questions.value = response.data.conversation.map(item => ({
             content: item.message,
             role: item.role,
@@ -182,5 +153,4 @@ const fetchConversation = (threadId) => {
 .busy-svg {
     border: 3px solid black;
 }
-
 </style>
