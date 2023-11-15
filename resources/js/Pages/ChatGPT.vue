@@ -12,26 +12,28 @@
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-4 space-y-4">
-                        <h1 class="text-2xl font-semibold">Chat with GPT-3</h1>
+                        <select v-model="model" class="block max-w-xs py-2 pl-3 pr-10 border border-white bg-white dark:bg-gray-800 rounded-md focus:outline-none focus:border-none focus:ring-0 sm:text-sm appearance-none">
+                            <option value="gpt-3.5-turbo">GPT-3.5-Turbo</option>
+                            <option value="code-davinci-edit-001">Davinci Codex</option>
+                        </select>
+
 
                         <div class="space-y-2">
                             <template v-for="(reply, index) in questions" :key="index">
                                 <h6>You</h6>
-                                <div class="bg-gray-100 p-2 rounded-lg dark:bg-gray-600">
-                                    {{ reply.question }}
-                                </div>
+                                <div class="bg-gray-100 p-2 rounded-lg dark:bg-gray-600">{{ reply.question }}</div>
                                 <h6>GPT</h6>
-                                <div v-if="reply.answer" class="bg-blue-100 p-2 rounded-lg dark:bg-gray-600">
-                                    {{ reply.answer }}
-                                </div>
+                                <div v-if="reply.answer" class="bg-blue-100 p-2 rounded-lg dark:bg-gray-600">{{ reply.answer }}</div>
                             </template>
                         </div>
 
                         <div class="relative">
               <textarea
+                  ref="textarea"
                   v-model="message"
-                  class="w-full h-32 p-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300 dark:bg-gray-700 dark:text-white"
-                  placeholder="Type your message here..."
+                  class="w-full h-32 p-2 border rounded-lg focus:outline-none dark:bg-gray-700 dark:text-white focus:ring-0"
+                  placeholder="Type your question here..."
+                  @keydown="handleKeyPress"
               ></textarea>
 
                             <button
@@ -57,39 +59,50 @@ import { ref } from 'vue';
 import axios from 'axios';
 
 const message = ref('');
+const model = ref('gpt-3.5-turbo');
 const questions = ref([]);
 const responseObj = ref({});
 const isLoading = ref(false);
 
-const sendMessage = () => {
-    if (isLoading.value) {
-        isLoading.value = false;
-        return;
+const handleKeyPress = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
     }
-    questions.value.push({question: message.value});
+}
 
+const sendMessage = () => {
+    if (isLoading.value) return;
+
+    let currentMessage = { question: message.value.trim() };
+    questions.value.push(currentMessage);
+    message.value = '';
     isLoading.value = true;
-    let msg = message.value;
-    message.value = ''
-    axios
-    .post('/chat', { message: msg })
+
+    // Extract the last two Q/A pairs
+    const lastTwoQA = questions.value.slice(-2).flatMap(q => [
+        { role: 'user', content: q.question },
+        q.answer ? { role: 'system', content: q.answer } : null
+    ]).filter(Boolean);
+
+    axios.post('/chat', {
+        message: currentMessage.question,
+        model: model.value,
+        conversation: lastTwoQA
+    })
     .then((response) => {
         responseObj.value = response;
-        console.log('response', response);
-        // Assuming the response contains the message from OpenAI
-        // questions.value.push({answer: response.data.content});
         questions.value[questions.value.length - 1].answer = response.data.content;
-
-        message.value = ''; // Clear the input field after sending
     })
     .catch((error) => {
+        questions.value[questions.value.length - 1].answer = 'No Response';
         console.error('Error:', error);
-        // Handle error (e.g., show an error message)
     })
     .finally(() => {
         isLoading.value = false;
     });
 };
+
 </script>
 
 <style scoped>
