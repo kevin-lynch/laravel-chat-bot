@@ -1,6 +1,5 @@
 <template>
     <Head title="ChatGPT Custom Model" />
-
     <AuthenticatedLayout>
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
@@ -13,17 +12,21 @@
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-4 space-y-4">
                         <select v-model="model" class="block max-w-xs py-2 pl-3 pr-10 border border-white bg-white dark:bg-gray-800 rounded-md focus:outline-none focus:border-none focus:ring-0 sm:text-sm appearance-none">
-                            <option value="gpt-3.5-turbo">GPT-3.5-Turbo</option>
-                            <option value="code-davinci-edit-001">Davinci Codex</option>
+                            <option value="gpt-3.5-turbo-1106">GPT-3.5-Turbo</option>
+                            <option value="gpt-4-1106-preview">GPT-4-1106-Preview</option>
                         </select>
 
 
                         <div class="space-y-2">
                             <template v-for="(reply, index) in questions" :key="index">
-                                <h6>You</h6>
-                                <div class="bg-gray-100 p-2 rounded-lg dark:bg-gray-600">{{ reply.question }}</div>
-                                <h6>GPT</h6>
-                                <div v-if="reply.answer" class="bg-blue-100 p-2 rounded-lg dark:bg-gray-600">{{ reply.answer }}</div>
+                                <div class="flex items-start space-x-4">
+                                    <div class="min-w-max pt-2 font-bold text-sm uppercase text-gray-600 dark:text-gray-400">You</div>
+                                    <div class="flex-grow bg-blue-100 p-2 rounded-lg dark:bg-gray-600 whitespace-pre-wrap overflow-x-auto" v-html="processResponse(reply.question)"></div>
+                                </div>
+                                <div class="flex items-start space-x-4">
+                                    <div class="min-w-max pt-2 font-bold text-sm uppercase text-blue-600 dark:text-blue-400">GPT</div>
+                                    <div v-if="reply.answer" class="flex-grow bg-blue-100 p-2 rounded-lg dark:bg-gray-600 whitespace-pre-wrap overflow-x-auto" v-html="processResponse(reply.answer)"></div>
+                                </div>
                             </template>
                         </div>
 
@@ -58,8 +61,8 @@ import { Head } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import axios from 'axios';
 
-const message = ref('');
-const model = ref('gpt-3.5-turbo');
+const message = ref('write console log in es6');
+const model = ref('gpt-4-1106-preview');
 const questions = ref([]);
 const responseObj = ref({});
 const isLoading = ref(false);
@@ -70,6 +73,22 @@ const handleKeyPress = (event) => {
         sendMessage();
     }
 }
+
+const processResponse = (text) => {
+    const codeSections = [];
+    text = text.replace(/```(\w+)?\n([\s\S]+?)```/g, (match, lang, code) => {
+        codeSections.push(`<code><pre class="${lang || ''}">${code.trim()}</pre></code>`);
+        return `CODESECTION-${codeSections.length - 1}`;
+    });
+
+    text = text.replace(/\n/g, '<br>');
+
+    // Replace back the code sections
+    text = text.replace(/CODESECTION-(\d+)/g, (match, index) => codeSections[index]);
+
+    return text;
+};
+
 
 const sendMessage = () => {
     if (isLoading.value) return;
@@ -95,7 +114,7 @@ const sendMessage = () => {
         questions.value[questions.value.length - 1].answer = response.data.content;
     })
     .catch((error) => {
-        questions.value[questions.value.length - 1].answer = 'No Response';
+        questions.value[questions.value.length - 1].answer = 'Error: No Response';
         console.error('Error:', error);
     })
     .finally(() => {
