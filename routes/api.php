@@ -3,6 +3,9 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\ChatGPTController;
+
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -16,4 +19,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+Route::prefix('chat')->group(function () {
+    Route::post('/', [ChatGPTController::class, 'sendMessage']);
+    Route::get('/conversation/{threadId}', [ChatGPTController::class, 'fetchConversation']);
 });
